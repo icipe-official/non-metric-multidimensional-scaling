@@ -1,0 +1,221 @@
+#Non-metric multidimensional scaling(NMDS) in R
+
+#Importing data and reading it in R
+library(readxl)
+setwd("C:/Users/lkoech/Documents/Lorna/NMDS in R")
+Nightshade<-read_excel("Data for NMDS.xlsx")
+
+#Extracting nightshade species(Solanum Sarrachoides, S. Scabrum and S. Villosum) 
+#and chemical volatiles columns
+Nightshade_factor<-Nightshade[1]
+Nightshade_conc<-Nightshade[2:59]
+
+
+#Log transforming chemical volatiles data
+#adding 1 to all values ensures that zero values remain to be zero 
+Nightshade_conc.transformed<-log(Nightshade_conc+1)
+Nightshade_conc.transformed
+
+library(vegan)
+#Pairwise comparison (dis)similarity between the nightshade species based on chemical volatiles 
+#and rounding up the decimal places to 4
+Nightshade_distmatrix<-round(vegdist(Nightshade_conc.transformed,method="bray", diag = TRUE),4)
+Nightshade_distmatrix
+
+#Hypothesis testing for significant differences of chemical volatiles concentration among the three nightshade species 
+#Permanova using adonis2 function
+set.seed(2000)
+Nightshade.adon<- adonis2(Nightshade_conc.transformed~Nightshade$species,permutations = 999,method='bray')
+Nightshade.adon
+
+#Anosim test
+set.seed(2000)
+Nightshade.anos<-anosim(Nightshade_conc.transformed, Nightshade$species, distance = "bray", permutations = 999)
+Nightshade.anos
+
+
+#Exploring different distance measures in the implementation of NMDS
+#Performing NMDS on chemical volatiles data with three dimensions k=1, k=2 and k=3 to obtain the best stress value
+
+##Bray-Curtis
+set.seed(1234)
+#k=1
+Nightshade_conc_nmds1.bray <-
+  metaMDS(Nightshade_conc.transformed,
+          distance = "bray",
+          k = 1,trymax = 100,
+          wascores = TRUE)
+
+Nightshade_conc_nmds1.bray
+
+#k=2
+Nightshade_conc_nmds2.bray <-
+  metaMDS(Nightshade_conc.transformed,
+          distance = "bray",
+          k = 2,trymax = 100,
+          wascores = TRUE)
+
+Nightshade_conc_nmds2.bray
+
+#k=3
+Nightshade_conc_nmds3.bray <-
+  metaMDS(Nightshade_conc.transformed,
+          distance = "bray",
+          k = 3,trymax = 100,
+          wascores = TRUE)
+
+Nightshade_conc_nmds3.bray
+
+##Euclidean
+set.seed(1234)
+#k=1
+Nightshade_conc_nmds1.eud <-
+  metaMDS(Nightshade_conc.transformed,
+          distance = "euclidean",
+          k = 1,trymax = 100,
+          wascores = TRUE)
+
+Nightshade_conc_nmds1.eud
+
+#k=2
+Nightshade_conc_nmds2.eud <-
+  metaMDS(Nightshade_conc.transformed,
+          distance = "euclidean",
+          k = 2,trymax = 100,
+          wascores = TRUE)
+
+Nightshade_conc_nmds2.eud
+
+#k=3
+Nightshade_conc_nmds3.eud <-
+  metaMDS(Nightshade_conc.transformed,
+          distance = "euclidean",
+          k = 3,trymax = 100,
+          wascores = TRUE)
+
+Nightshade_conc_nmds3.eud
+
+##kulczynski
+set.seed(1234)
+#k=1
+Nightshade_conc_nmds1.kul <-
+  metaMDS(Nightshade_conc.transformed,
+          distance = "kulczynski",
+          k = 1,trymax = 100,
+          wascores = TRUE)
+
+Nightshade_conc_nmds1.kul
+
+#k=2
+Nightshade_conc_nmds2.kul <-
+  metaMDS(Nightshade_conc.transformed,
+          distance = "kulczynski",
+          k = 2,trymax = 100,
+          wascores = TRUE)
+
+Nightshade_conc_nmds2.kul
+
+#k=3
+Nightshade_conc_nmds3.kul <-
+  metaMDS(Nightshade_conc.transformed,
+          distance = "kulczynski",
+          k = 3,trymax = 100,
+          wascores = TRUE)
+
+Nightshade_conc_nmds3.kul
+
+##manhattan
+set.seed(1234)
+#k=1
+Nightshade_conc_nmds1.man <-
+  metaMDS(Nightshade_conc.transformed,
+          distance = "manhattan",
+          k = 1,trymax = 100,
+          wascores = TRUE)
+
+Nightshade_conc_nmds1.man
+
+#k=2
+Nightshade_conc_nmds2.man<-
+  metaMDS(Nightshade_conc.transformed,
+          distance = "manhattan",
+          k = 2,trymax = 100,
+          wascores = TRUE)
+
+Nightshade_conc_nmds2.man
+
+#k=3
+Nightshade_conc_nmds3.man<-
+  metaMDS(Nightshade_conc.transformed,
+          distance = "manhattan",
+          k = 3,trymax = 100,
+          wascores = TRUE)
+
+Nightshade_conc_nmds3.man
+
+#Shepards diagram based on Bray-Curtis distance
+#Dimension k=2 had the best stress value hence it was chosen in obtaining the shepards' plot
+stressplot(Nightshade_conc_nmds2.bray) 
+
+
+#Extracting nightshade species and chemical volatiles scores based on Bray-Curtis distance
+#comp.scores-chemical volatiles scores
+#species.scores-nightshade species scores
+
+scores(Nightshade_conc_nmds2.bray)
+
+comp.scores<-as.data.frame(scores(Nightshade_conc_nmds2.bray,"species"))
+#changing compound scores' row names to c1,c2,c3....c58
+row_names<-paste("c", 1:58, sep="")
+rownames(comp.scores)<-row_names
+comp.scores<-cbind(comp.scores,Compounds=row_names)
+
+species.scores<-as.data.frame(scores(Nightshade_conc_nmds2.bray,"sites"))
+Nightshade$species<-as.factor(Nightshade$species)
+species.scores<-cbind(species.scores,Species=Nightshade$species)
+
+#NMDS ordination plot fitted with ellipses based on Bray-Curtis distance
+library(ggplot2)
+library(ggforce)
+
+NMDS_Nightshades_plot<-ggplot()+
+  geom_point(data = species.scores,
+             mapping=aes(x=NMDS1,y=NMDS2,shape=Species,colour=Species),
+             alpha=1000,size=5.5)+
+  geom_text(data=comp.scores,aes(x=NMDS1,y=NMDS2,label= Compounds),
+            size=5)+
+  theme_minimal()+
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_rect(),
+        axis.ticks = element_line(colour = "black"),
+        axis.ticks.length = unit(0.15, "cm"),
+        legend.position = "right")+
+  ggforce::geom_mark_ellipse(data=species.scores, 
+                            aes(x=NMDS1, y=NMDS2,
+                                fill=Species, colour=Species),
+                            expand = unit(2.9,"cm"))+
+  coord_cartesian(xlim = c(-1.7,1.9), ylim = c(-0.8,1.2))
+                             
+
+NMDS_Nightshades_plot
+
+
+
+  
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
